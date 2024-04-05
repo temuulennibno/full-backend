@@ -11,8 +11,87 @@ datasource db {
 }
 
 model User {
-  id       String   @id @default(nanoid()) @map("_id")
-  email    String   @unique
+  id       String                @id @default(nanoid()) @map("_id")
+  email    String                @unique
   name     String?
   password String
+  ratings  AnimeRating[]
+  comments AnimeEpisodeComment[]
+}
+
+enum AnimeOngoingStatus {
+  ONGOING
+  FINISHED
+  POSTPONED
+}
+
+model AnimeGenre {
+  id        String   @id @default(nanoid()) @map("_id")
+  title     String
+  createdAt DateTime @default(now())
+  animeIds  String[]
+  animes    Anime[]  @relation("genres", fields: [animeIds], references: [id])
+}
+
+model Anime {
+  id               String             @id @default(nanoid()) @map("_id")
+  title            String
+  description      String
+  veriticalPoster  String
+  horizontalPoster String
+  releaseYear      Int
+  ongoingStatus    AnimeOngoingStatus
+  genreIds         String[]
+  genres           AnimeGenre[]       @relation("genres", fields: [genreIds], references: [id])
+  episodes         AnimeEpisode[]
+  seasons          AnimeSeason[]
+  ratings          AnimeRating[]
+  createdAt        DateTime           @default(now())
+}
+
+model AnimeSeason {
+  id        String         @id @default(nanoid()) @map("_id")
+  anime     Anime          @relation(fields: [animeId], references: [id])
+  animeId   String
+  title     String
+  episodes  AnimeEpisode[]
+  createdAt DateTime       @default(now())
+}
+
+model AnimeEpisode {
+  id        String                @id @default(nanoid()) @map("_id")
+  anime     Anime                 @relation(fields: [animeId], references: [id])
+  animeId   String
+  title     String
+  image     String
+  episode   Int
+  season    AnimeSeason?          @relation(fields: [seasonId], references: [id])
+  seasonId  String?
+  comments  AnimeEpisodeComment[]
+  createdAt DateTime              @default(now())
+}
+
+model AnimeRating {
+  id        String   @id @default(nanoid()) @map("_id")
+  anime     Anime    @relation(fields: [animeId], references: [id])
+  animeId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  rating    Int      @default(3)
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model AnimeEpisodeComment {
+  id        String                @id @default(nanoid()) @map("_id")
+  episode   AnimeEpisode          @relation(fields: [animeId], references: [id])
+  animeId   String
+  user      User                  @relation(fields: [userId], references: [id])
+  userId    String
+  comment   String
+  voteCount Int                   @default(0)
+  parent    AnimeEpisodeComment?  @relation("comment", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parentId  String?
+  replies   AnimeEpisodeComment[] @relation("comment")
+  createdAt DateTime              @default(now())
 }
