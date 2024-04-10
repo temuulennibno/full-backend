@@ -1,11 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
-export const POST = async (req: NextRequest) => {
-  const formData = await req.formData();
-  cloudinary.uploader.upload("/home/my_image.jpg", { upload_preset: "my_preset" }, (error, result) => {
-    console.log(result, error);
-  });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  return NextResponse.json({ message: "Got your file!" });
-};
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const file = formData.get("file") as File;
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = new Uint8Array(arrayBuffer);
+
+  const results = await new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(function (error, result) {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(result);
+      })
+      .end(buffer);
+  });
+  const url = (results as any).secure_url;
+  return Response.json({ url });
+}
